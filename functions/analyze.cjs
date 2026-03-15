@@ -44,14 +44,17 @@ function aggregate(reviews) {
       topIssues: [],
     };
   });
-  const topQuotes = reviews
-    .filter(r => r.text && r.text.length > 20)
+  const isEnglish = (t) => {
+    const letters = t.replace(/[^a-zA-Z]/g, '').length;
+    return t.length > 0 && (letters / t.length) > 0.4;
+  };
+  const topQuotesCandidates = reviews
+    .filter(r => r.text && r.text.length > 30 && isEnglish(r.text))
     .sort((a, b) => b.text.length - a.text.length)
-    .slice(0, 3)
-    .map(r => ({ text: r.text, rating: r.rating, date: r.date, platform: r.platform }));
+    .slice(0, 15);
   
   themes.sort((a, b) => b.negativeCount - a.negativeCount);
-  return { themes, stats: { total, avg, pos, neg, nps }, topQuotes };
+  return { themes, stats: { total, avg, pos, neg, nps }, topQuotesCandidates };
 }
 
 async function callGroq(prompt) {
@@ -93,13 +96,15 @@ exports.handler = async (event) => {
   if (!Array.isArray(reviews) || reviews.length === 0)
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: "No reviews provided" }) };
 
-  const { themes, stats, topQuotes } = aggregate(reviews);
+  const { themes, stats, topQuotesCandidates } = aggregate(reviews);
   console.log(`[analyze] ${reviews.length} reviews aggregated`);
 
   // Build a short numbered-stats prompt — NO user text, NO JSON template inside
   const npsStr = stats.nps >= 0 ? `+${stats.nps}` : String(stats.nps);
   const rows   = themes.map(t => `  ${t.name}: ${t.reviewCount} reviews, ${t.negativeCount} negative, avg ${t.avgRating}/5`).join("\n");
   const period = `${fmt(fromDate)} to ${fmt(toDate)}`;
+
+  const reviewsText = topQuotesCandidates.map((r, i) => `Review ${i}: [${r.platform}] ${r.rating}★ - "${r.text.replace(/"/g, "'")}"`).join("\n");
 
   const prompt = `You are a senior product analyst at Groww, an Indian stock-trading and mutual-fund app.
 
@@ -109,7 +114,10 @@ ${rows}
 
 Overall: ${stats.total} total reviews, average ${stats.avg} stars, ${stats.pos} positive (4-5★), ${stats.neg} negative (1-2★), NPS proxy ${npsStr}.
 
-Using your knowledge of Indian fintech apps, output ONLY a valid, strict JSON object. Rules:
+Here are 15 notable user reviews strictly for you to summarize:
+${reviewsText}
+
+Using your knowledge of Indian fintech apps, select exactly 3 completely English reviews from the notable reviews above, summarize each into a powerful 10-15 word quote. Output ONLY a valid, strict JSON object. Rules:
 - Return ONLY the JSON object, nothing before or after it.
 - ALL keys and string values MUST be enclosed in double quotes.
 - Do NOT include any markdown, backticks, or code fences.
@@ -141,6 +149,15 @@ Use exactly this JSON schema format:
   "action3_timeline": "This week, 2 weeks, or 1 month",
   "action3_description": "concrete action in under 15 words",
   "action3_metric": "how to measure success in under 10 words",
+  "quote1_text": "summarized version of the 1st selected English review",
+  "quote1_rating": 5,
+  "quote1_platform": "Play Store",
+  "quote2_text": "summarized version of the 2nd selected English review",
+  "quote2_rating": 3,
+  "quote2_platform": "App Store",
+  "quote3_text": "summarized version of the 3rd selected English review",
+  "quote3_rating": 1,
+  "quote3_platform": "Play Store",
   "email_subject": "email subject",
   "email_body": "plain-text email body starting with Hi Team and ending with Pulse Bot, max 120 words"
 }`;
@@ -157,6 +174,9 @@ Use exactly this JSON schema format:
     action1_title:     "Fix payment failures",  action1_owner: "Eng",     action1_timeline: "This week", action1_description: "Investigate and patch top payment failure error codes", action1_metric: "Payment failure rate below 1%",
     action2_title:     "Streamline KYC flow",   action2_owner: "Product", action2_timeline: "2 weeks",   action2_description: "Reduce KYC drop-off with clearer guidance and retries",   action2_metric: "KYC completion rate up 15%",
     action3_title:     "Improve fee clarity",   action3_owner: "Design",  action3_timeline: "1 month",   action3_description: "Show itemised fee breakdown before each transaction",        action3_metric: "Charges complaints down 20%",
+    quote1_text:       "Smooth stock trading experience with great UI", quote1_rating: 5, quote1_platform: "Play Store",
+    quote2_text:       "KYC took too long to verify my account", quote2_rating: 1, quote2_platform: "App Store",
+    quote3_text:       "Clear app but faced a payment glitch yesterday", quote3_rating: 3, quote3_platform: "Play Store",
     email_subject:     `Groww Review Pulse | ${period}`,
     email_body:        `Hi Team,\n\nHere is the weekly Groww review pulse for ${period}.\n\nTotal: ${stats.total} reviews | Avg: ${stats.avg}★ | NPS: ${npsStr}\n\nTop Issues:\n- Execution & Performance: Payment failures\n- KYC & Identity: Verification delays\n- Charges & Transparency: Fee transparency\n\nPulse Bot | Automated Weekly Digest`,
   };
@@ -183,6 +203,12 @@ Use exactly this JSON schema format:
     { title: g.action1_title, theme: themes[0]?.name || "Execution & Performance", priority: themes[0]?.priority || "CRITICAL", owner: g.action1_owner, timeline: g.action1_timeline, description: g.action1_description, successMetric: g.action1_metric },
     { title: g.action2_title, theme: themes[1]?.name || "KYC & Identity",          priority: themes[1]?.priority || "HIGH",     owner: g.action2_owner, timeline: g.action2_timeline, description: g.action2_description, successMetric: g.action2_metric },
     { title: g.action3_title, theme: themes[2]?.name || "Charges & Transparency",  priority: themes[2]?.priority || "FOCUS",    owner: g.action3_owner, timeline: g.action3_timeline, description: g.action3_description, successMetric: g.action3_metric },
+  ];
+
+  const topQuotes = [
+    { text: g.quote1_text, rating: g.quote1_rating, platform: g.quote1_platform },
+    { text: g.quote2_text, rating: g.quote2_rating, platform: g.quote2_platform },
+    { text: g.quote3_text, rating: g.quote3_rating, platform: g.quote3_platform },
   ];
 
   return {
