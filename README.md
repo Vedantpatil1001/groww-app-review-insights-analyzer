@@ -1,14 +1,15 @@
-# Groww Review Pulse 📊
+# Groww Insights 📊
 
-An automated pipeline that scrapes live Groww app reviews from Google Play Store and Apple App Store, runs AI analysis via Groq, and delivers a one-page weekly health pulse to your product team.
+An automated pipeline that scrapes live Groww app reviews from Google Play Store and Apple App Store, runs intelligent NLP analysis via Groq (LLaMA 3.3), and delivers a comprehensive dashboard and weekly health pulse to your product team.
 
 ## What It Does
 
-1. **Scrapes** live reviews from Play Store + App Store (7 / 14 / 21 / 28 day windows)
-2. **Classifies** reviews into 4 product themes using heuristics + Groq AI
-3. **Analyses** sentiment, NPS proxy, and priority scores — all aggregation happens in Node so no user PII reaches the AI
-4. **Generates** a structured pulse: theme breakdown, action roadmap, positive highlights, risk alerts
-5. **Emails** a rich HTML digest to your team via Gmail
+1. **Scrapes** live reviews from Play Store + App Store (1 / 2 / 3 / 4 week windows).
+2. **Classifies** reviews into 4 product themes using heuristics.
+3. **Analyses** actionable intelligence, extracting sentiment distributions per theme, calculating a unified NPS proxy and calculating severity.
+4. **Highlights** the Top 3 User Quotes, dynamically selecting the most notable English reviews and leveraging AI to summarize them into punchy, powerful 15-word actionable PM insights.
+5. **Generates** a beautiful, grid-based dashboard with a structured pulse: theme breakdown, action roadmap timelines, positive highlights, and risk alerts.
+6. **Emails** a rich HTML digest to your team via Gmail SMTP.
 
 ---
 
@@ -17,38 +18,36 @@ An automated pipeline that scrapes live Groww app reviews from Google Play Store
 | Layer | Technology |
 |---|---|
 | Frontend | React 18 + Vite |
-| Serverless functions | Netlify Functions (Node.js) |
-| AI analysis | Groq AI API |
+| Backend API | Express / Custom Node Web Service |
+| AI analysis | Groq AI API (`llama-3.3-70b-versatile`) |
 | Play Store scraping | `google-play-scraper` |
-| Email delivery | SMTP (Gmail) |
+| Email delivery | Nodemailer (Gmail) |
 
 ---
 
 ## Project Structure
 
-```text
+\`\`\`text
 groww-pulse/
-├── functions/               ← Netlify serverless functions
+├── functions/               ← Node.js backend handlers
 │   ├── scrape.cjs           ← Layer 1: live Play Store + App Store scraper
-│   ├── analyze.cjs          ← Layer 2-4: Groq AI aggregation + analysis
+│   ├── analyze.cjs          ← Layer 2-4: Groq AI aggregation, summarization + analysis
 │   ├── send-email.cjs       ← Email delivery via Nodemailer (Gmail)
-│   ├── schedule.cjs         ← API for saved schedules (background)
-│   └── package.json         ← Function-specific deps
+│   └── schedule.cjs         ← API for saved schedules (background)
 ├── src/
 │   ├── components/
-│   │   ├── HomeScreen.jsx   ← Config UI: window slider
-│   │   ├── PipelineScreen.jsx ← Animated progress indicator
-│   │   └── ResultsScreen.jsx  ← Masthead, stats, theme cards, actions, email trigger
+│   │   ├── HomeScreen.jsx     ← Premium Split-Screen Config UI
+│   │   ├── PipelineScreen.jsx ← Minimalist circular progress indicator
+│   │   └── ResultsScreen.jsx  ← Live dashboard, Top Quotes, Theme Bars, Actions Timeline
 │   ├── lib/
-│   │   └── api.js           ← API fetch wrappers
-│   ├── App.jsx              ← Root pipeline orchestration
+│   │   └── api.js             ← API fetch wrappers (Detects local vs Vercel Prod Base)
+│   ├── App.jsx                ← Root pipeline orchestration
 │   ├── main.jsx
-│   └── index.css
-├── server.cjs               ← Local dev HTTP server (port 9999) + cron scheduler
-├── vite.config.js           ← Dev proxy: /.netlify/functions/* → localhost:9999
+│   └── index.css              ← Global unified color palette (Inter Font + Groww branding)
+├── server.cjs                 ← Backend production Node Server (port 9999) + cron scheduler
 ├── package.json
 └── .env.example
-```
+\`\`\`
 
 ---
 
@@ -62,77 +61,90 @@ groww-pulse/
 
 ### Setup
 
-```bash
+\`\`\`bash
 # 1. Clone the repo
 git clone https://github.com/Vedantpatil1001/groww-app-review-insights-analyzer.git
 cd groww-app-review-insights-analyzer
 
 # 2. Install all dependencies
 npm install
-cd functions && npm install && cd ..
 
 # 3. Set up environment variables
 cp .env.example .env
 # Edit .env and fill in your keys
-```
+\`\`\`
 
 ### Environment Variables
 
-```env
+\`\`\`env
 # Groq AI Key
 GROQ_API_KEY=your_groq_api_key
 
 # Gmail credentials for sending emails (Use an App Password)
 GMAIL_USER=your_email@gmail.com
 GMAIL_APP_PASSWORD=your_app_password
-
-# Optional: Default recipients for the email digest (comma-separated)
-TEAM_EMAILS=pm@company.com,ceo@company.com
-```
+\`\`\`
 
 ### Running Locally
 
 You need **two terminals** running simultaneously:
 
-```bash
-# Terminal 1 — functions server + scheduler (port 9999)
+\`\`\`bash
+# Terminal 1 — Backend Express Server (port 9999)
 npm run dev:functions
 
-# Terminal 2 — React app (port 5173)
+# Terminal 2 — React Frontend (port 5173)
 npm run dev
-```
+\`\`\`
 
 Open **http://localhost:5173**
 
-The Vite dev server proxies all `/.netlify/functions/*` requests to `localhost:9999`, so everything works identically to production.
+---
+
+## Production Deployment (Free)
+
+This project has been explicitly engineered to sit beautifully on scalable free tiers.
+
+### 1. Deploy the Backend (Render)
+1. Push this code to your GitHub repo.
+2. Sign up on **Render.com** and deploy a *Web Service*.
+3. Connect your repository, set build command to `npm install` and start command to `node server.cjs`.
+4. Add all environment variables from your `.env` to the Render dashboard.
+5. Copy your live Render URL (e.g. `https://groww-pulse.onrender.com`).
+
+### 2. Deploy the Frontend (Vercel)
+1. Sign up on **Vercel.com** and add your repository as a new *Vite* project.
+2. Under "Environment Variables", set `VITE_API_BASE_URL` to your Render backend URL.
+3. Turn **OFF** "Vercel Authentication" in Deployment Protection settings so it is public.
+4. Deploy! It will automatically map and hit your Render API via the environmental hooks.
 
 ---
 
 ## How the Pipeline Works
 
-```text
-User clicks "Run Pulse"
+\`\`\`text
+User clicks "Generate Report"
         │
         ▼
 Layer 1 ─ Scrape
-  ├── google-play-scraper → up to 200 Play Store reviews
-  └── iTunes RSS API      → up to 100 App Store reviews
+  ├── google-play-scraper → Fetch massive batches of Play Store reviews
+  └── iTunes RSS API      → Fetch Apple reviews
         │
         ▼
-Layer 2 ─ Aggregate (in Node.js — no PII sent to AI)
-  └── Count reviews per theme, calculate avg ratings,
-      sentiment splits, NPS proxy
+Layer 2 ─ Aggregate & Data Cleanse
+  └── Strip invalid characters, calculate rating splits, 
+      extract Top 15 robust English candidates for quoting.
         │
         ▼
 Layer 3 ─ Groq AI Analysis
-  └── Receives only aggregated numbers (counts, averages)
-      Returns: headline, core pains, risk alert, 3 actions, email copy
+  └── AI receives mathematical aggregations + Top 15 raw quotes
+      Returns: JSON containing selected top 3 quotes summarized, core pains, risk alert, 3 actions.
         │
         ▼
 Layer 4 ─ Deliver
-  ├── Display results in UI
-  └── Send HTML email via Gmail (Nodemailer)
-```
+  ├── Render stunning Grid UI Dashboard (ResultsScreen.jsx)
+  └── Dispatch HTML pulse email via SMTP NodeMailer
+\`\`\`
 
 ### The 4 Themes
 
@@ -145,8 +157,7 @@ Layer 4 ─ Deliver
 
 ---
 
-## Privacy
+## Privacy Architecture
 
-- No user review text is ever sent to Groq or any external AI service.
-- Only aggregated statistics (counts, averages) reach the AI.
-- No data is stored permanently — reviews exist only in memory during a pipeline run.
+- 99% of aggregation (Math, Theme Assignment, Splits) happens completely offline inside the `analyze.cjs` Node script.
+- Only the 15 selected highest-entropy anonymous English reviews are ever injected into the Groq LLaMA prompt for Summarization, meaning no massive data payloads of user PII are blindly blasted to LLM APIs.
