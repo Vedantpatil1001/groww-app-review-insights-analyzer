@@ -194,9 +194,3 @@ All functions are called via `POST /.netlify/functions/<name>`.
 - No user review text is ever sent to Groq or any external AI service.
 - Only aggregated statistics (counts, averages) reach the AI.
 - No data is stored permanently — reviews exist only in memory during a pipeline run.
-
----
-
-## License
-
-nidhipawar5
