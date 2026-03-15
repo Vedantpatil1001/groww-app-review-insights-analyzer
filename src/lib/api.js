@@ -1,4 +1,5 @@
-const BASE = "/.netlify/functions";
+// Use Vercel Environment Variable for production backend URL, fallback to localhost for local dev
+const BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:9999";
 
 async function post(route, body) {
   const res  = await fetch(`${BASE}/${route}`, {
