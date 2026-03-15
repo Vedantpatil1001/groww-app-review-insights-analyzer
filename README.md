@@ -147,48 +147,6 @@ Layer 4 ─ Deliver
 
 ---
 
-## API Reference
-
-All functions are called via `POST /.netlify/functions/<name>`.
-
-### `POST /scrape`
-```json
-// Request
-{ "windowDays": 7 }
-
-// Response
-{
-  "reviews": [...],
-  "fromDate": "2024-01-01",
-  "toDate": "2024-01-07",
-  "total": 362,
-  "sources": { "playStore": 200, "appStore": 162 }
-}
-```
-
-### `POST /analyze`
-```json
-// Request
-{ "reviews": [...], "windowDays": 7, "fromDate": "...", "toDate": "..." }
-
-// Response
-{
-  "overview": { "headline": "...", "sentiment": "mixed" },
-  "themes": [...],
-  "actions": [...],
-  "stats": { "total": 362, "avg": "3.2", "pos": 120, "neg": 180, "nps": -16 },
-  "email": { "subject": "...", "plain": "..." }
-}
-```
-
-### `POST /send-email`
-```json
-// Request (recipient falls back to env vars if omitted)
-{ "subject": "...", "plain": "...", "themes": [...], "actions": [...], "stats": {...} }
-```
-
----
-
 ## Privacy
 
 - No user review text is ever sent to Groq or any external AI service.
