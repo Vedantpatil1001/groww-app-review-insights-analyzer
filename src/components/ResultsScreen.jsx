@@ -3,204 +3,211 @@ import { sendEmail } from "../lib/api.js";
 
 const THEME_META = {
   "Execution & Performance": { color: "var(--red)", icon: "⚡" },
-  "KYC & Identity":          { color: "var(--amber)", icon: "🪪" },
-  "Charges & Transparency":  { color: "var(--green)", icon: "📊" },
-  "UI & Features":           { color: "var(--navy)", icon: "🎨" },
+  "KYC & Identity":          { color: "var(--amber)", icon: "🛡️" },
+  "Charges & Transparency":  { color: "var(--green)", icon: "💳" },
+  "UI & Features":           { color: "var(--blue)", icon: "✨" },
 };
 
-const PRIORITY_STYLE = {
-  CRITICAL: { badge: "var(--red)", bg: "var(--red-l)", border: "#FEB2B2" },
-  HIGH:     { badge: "var(--amber)", bg: "var(--amber-l)", border: "#FDE68A" },
-  FOCUS:    { badge: "var(--green-d)", bg: "var(--green-l)", border: "#A7F3D0" },
-  WATCH:    { badge: "var(--navy)", bg: "var(--navy-l)", border: "#BFDBFE" },
-};
-
-const fmt = iso => iso ? new Date(iso).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}) : "";
-
-function Badge({ priority }) {
-  const s = PRIORITY_STYLE[priority] || PRIORITY_STYLE.WATCH;
-  return <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", padding: "3px 10px", borderRadius: 99, background: s.bg, color: s.badge, border: `1px solid ${s.border}` }}>{priority}</span>;
-}
-
-function Stat({ label, value, highlight }) {
+function Metric({ label, value, highlight }) {
   return (
-    <div style={{ flex: 1, minWidth: 90, background: "var(--white)", border: highlight ? "1px solid var(--green)" : "1px solid var(--border)", borderRadius: 12, padding: "16px 12px", textAlign: "center", boxShadow: highlight ? "0 4px 12px rgba(0,200,83,0.1)" : "none" }}>
-      <div style={{ fontSize: "clamp(20px, 4vw, 28px)", fontWeight: 800, color: highlight ? "var(--green)" : "var(--text)" }}>{value}</div>
-      <div style={{ fontSize: 12, color: "var(--sub)", marginTop: 4, fontWeight: 500 }}>{label}</div>
+    <div style={{ padding: "24px 0" }}>
+      <div style={{ fontSize: 13, color: "var(--text-tertiary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 900, color: highlight ? "var(--green)" : "var(--text-primary)", letterSpacing: "-0.03em", lineHeight: 1 }}>
+        {value}
+      </div>
     </div>
   );
 }
 
 function ThemeCard({ theme }) {
-  const [open, setOpen] = useState(false);
-  const m = THEME_META[theme.name] || { color: "var(--navy)", icon: "●" };
+  const m = THEME_META[theme.name] || { color: "var(--blue)", icon: "📌" };
   const pct = n => Math.max(0, Math.min(100, n || 0));
 
   return (
-    <div onClick={() => setOpen(o => !o)} style={{ cursor: "pointer", background: "var(--white)", border: open ? `1px solid ${m.color}` : "1px solid var(--border)", borderRadius: 16, padding: 20, transition: "all .2s", boxShadow: open ? "0 4px 12px rgba(0,0,0,0.05)" : "none" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--bg)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{m.icon}</div>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <span style={{ fontWeight: 800, fontSize: 16, color: "var(--text)" }}>{theme.name}</span>
-            <Badge priority={theme.priority} />
-          </div>
-          <div style={{ fontSize: 13, color: "var(--sub)" }}>{theme.corePain}</div>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 24, padding: 32, transition: "transform 0.2s" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 24 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 16, background: "var(--bg)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
+          {m.icon}
         </div>
-        <div style={{ display: "flex", gap: 16, alignItems: "center", flexShrink: 0 }}>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontWeight: 800, fontSize: 18, color: m.color }}>{theme.reviewCount}</div>
-            <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>reviews</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontWeight: 800, fontSize: 18, color: "var(--text)" }}>{theme.avgRating}★</div>
-            <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>avg</div>
-          </div>
-          <div style={{ color: "var(--muted)", fontSize: 14, marginLeft: 8, background: "var(--bg)", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>{open ? "▲" : "▼"}</div>
+        <div style={{ flex: 1 }}>
+          <h3 style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.01em", color: "var(--text-primary)", marginBottom: 4 }}>{theme.name}</h3>
+          <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.5 }}>{theme.corePain}</p>
         </div>
       </div>
 
-      <div style={{ marginTop: 18, height: 6, borderRadius: 3, overflow: "hidden", display: "flex", gap: 2, background: "var(--bg)" }}>
-        <div style={{ flex: pct(theme.sentiment_split?.positive), background: "var(--green)", transition: "flex .4s" }} />
-        <div style={{ flex: pct(theme.sentiment_split?.neutral),  background: "var(--muted)", transition: "flex .4s" }} />
-        <div style={{ flex: pct(theme.sentiment_split?.negative), background: "var(--red)",    transition: "flex .4s" }} />
-      </div>
-      <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>
-        <span style={{ color: "var(--green-d)" }}>● {theme.sentiment_split?.positive ?? 0}% pos</span>
-        <span>● {theme.sentiment_split?.neutral ?? 0}% neu</span>
-        <span style={{ color: "var(--red)" }}>● {theme.sentiment_split?.negative ?? 0}% neg</span>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24, background: "var(--bg)", padding: 16, borderRadius: 16, border: "1px solid var(--border)" }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-tertiary)", letterSpacing: "0.05em", marginBottom: 4 }}>REVIEWS</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)" }}>{theme.reviewCount}</div>
+        </div>
+        <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-tertiary)", letterSpacing: "0.05em", marginBottom: 4 }}>AVG RATING</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)" }}>{theme.avgRating}★</div>
+        </div>
       </div>
 
-      {open && (
-        <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border)", animation: "fadeUp 0.3s ease" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div style={{ padding: 16, background: "var(--red-l)", border: "1px solid #FEB2B2", borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 700, marginBottom: 8, letterSpacing: "0.05em" }}>NEGATIVE COUNT</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "var(--red)" }}>{theme.negativeCount}</div>
-              <div style={{ fontSize: 12, color: "var(--sub)" }}>out of {theme.reviewCount} reviews</div>
-            </div>
-            <div style={{ padding: 16, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: "var(--sub)", fontWeight: 700, marginBottom: 8, letterSpacing: "0.05em" }}>CORE PAIN</div>
-              <div style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.5 }}>{theme.corePain}</div>
-            </div>
-          </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 24, marginTop: 8 }}>
+        {/* Bold visual split text */}
+        <div style={{ display: "flex", gap: 12, fontWeight: 800, fontSize: 13, letterSpacing: "0.05em" }}>
+          <span style={{ color: "var(--green)" }}>{theme.sentiment_split?.positive ?? 0}% P</span>
+          <span style={{ color: "var(--text-tertiary)" }}>{theme.sentiment_split?.neutral ?? 0}% N</span>
+          <span style={{ color: "var(--red)" }}>{theme.sentiment_split?.negative ?? 0}% N</span>
         </div>
-      )}
+        
+        {/* Redesigned thicker discrete bar segments */}
+        <div style={{ flex: 1, display: "flex", gap: 4, height: 8 }}>
+          <div style={{ width: `${pct(theme.sentiment_split?.positive)}%`, background: "var(--green)", borderRadius: 4 }} />
+          <div style={{ width: `${pct(theme.sentiment_split?.neutral)}%`, background: "var(--border)", borderRadius: 4 }} />
+          <div style={{ width: `${pct(theme.sentiment_split?.negative)}%`, background: "var(--red)", borderRadius: 4 }} />
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function ResultsScreen({ result, meta }) {
   const [emailStatus, setEmailStatus] = useState("idle");
-  const [emailError,  setEmailError]  = useState("");
 
   const { overview, themes, positiveHighlight, riskAlert, actions, stats, email } = result;
   const npsStr = stats.nps >= 0 ? `+${stats.nps}` : String(stats.nps);
 
   async function handleSendEmail() {
-    setEmailStatus("sending"); setEmailError("");
+    setEmailStatus("sending");
     try {
       await sendEmail({ subject: email?.subject, plain: email?.plain, themes, actions, stats, fromDate: meta?.fromDate, toDate: meta?.toDate, positiveHighlight, riskAlert, headline: overview?.headline });
       setEmailStatus("sent");
     } catch (e) {
-      setEmailError(e.message);
       setEmailStatus("error");
     }
   }
 
   return (
-    <div className="fade-up">
-      {/* Masthead */}
-      <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 16, padding: "28px 32px", marginBottom: 24, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+    <div className="animate-fade-in" style={{ padding: "0 32px 64px", maxWidth: 1400, margin: "0 auto" }}>
+      
+      {/* Top Split Header (Matches HomeScreen branding) */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "10%", marginBottom: 64, alignItems: "center" }}>
+        
+        {/* Left: Summary */}
+        <div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "var(--blue-light)", color: "var(--blue-hover)", padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 24 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--blue)" }} />
+            INSIGHTS GENERATED
+          </div>
+          
+          <h1 style={{ fontSize: "clamp(36px, 4.5vw, 64px)", fontWeight: 900, lineHeight: 1.1, letterSpacing: "-0.03em", color: "var(--text-primary)", marginBottom: 24 }}>
+            {overview?.headline}
+          </h1>
+          
+          <p style={{ fontSize: 18, color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: 540 }}>
+            {positiveHighlight}
+          </p>
+        </div>
+
+        {/* Right: Big Stats Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", background: "var(--surface)", padding: 40, borderRadius: 24, border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}>
+          <Metric label="Average Rating" value={`${stats.avg}★`} highlight />
+        </div>
+      </div>
+
+      {riskAlert && (
+        <div style={{ background: "var(--red-light)", border: "1px solid #FECACA", borderRadius: 16, padding: "24px 32px", marginBottom: 64, display: "flex", alignItems: "center", gap: 24 }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>⚠️</div>
           <div>
-            <div style={{ fontSize: 12, color: "var(--green-d)", fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>
-              GROWW PULSE · {fmt(meta?.fromDate)} – {fmt(meta?.toDate)}
-            </div>
-            <h1 style={{ fontWeight: 800, fontSize: "clamp(20px, 3.5vw, 28px)", lineHeight: 1.25, maxWidth: 640, color: "var(--text)", letterSpacing: "-0.01em" }}>
-              {overview?.headline}
-            </h1>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "var(--red)", letterSpacing: "0.08em", marginBottom: 4 }}>CRITICAL RISK ALERT</div>
+            <div style={{ fontSize: 16, color: "#7F1D1D", fontWeight: 500 }}>{riskAlert}</div>
           </div>
-          {meta?.sources && (
-            <div style={{ display: "flex", gap: 12, flexShrink: 0 }}>
-              {[["🤖",meta.sources.playStore,"Play Store"],["🍎",meta.sources.appStore,"App Store"]].map(([icon,n,lbl]) => (
-                <div key={lbl} style={{ textAlign: "center", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px" }}>
-                  <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
-                  <div style={{ fontWeight: 800, fontSize: 18, color: "var(--text)" }}>{n}</div>
-                  <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>{lbl}</div>
+        </div>
+      )}
+
+      {/* Grid: Themes and Actions side by side */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, marginBottom: 80 }}>
+        
+        {/* Themes Column */}
+        <div>
+          <h2 style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.02em", marginBottom: 32, display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--text-primary)", color: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>1</div>
+            Core Themes
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {(themes || []).map(t => <ThemeCard key={t.name} theme={t} />)}
+          </div>
+        </div>
+
+        {/* Actions Column */}
+        <div>
+          <h2 style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.02em", marginBottom: 32, display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--green)", color: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>2</div>
+            Action Roadmap
+          </h2>
+          
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 24, padding: "40px 32px", display: "flex", flexDirection: "column", gap: 40 }}>
+            {(actions || []).map((a, i) => (
+              <div key={i} style={{ display: "flex", gap: 24 }}>
+                <div style={{ flexShrink: 0, width: 2, background: i === actions.length -1 ? "transparent" : "var(--border)", position: "relative", marginLeft: "11px" }}>
+                  <div style={{ position: "absolute", top: 0, left: -11, width: 24, height: 24, borderRadius: "50%", background: "var(--bg)", border: "2px solid var(--text-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 }}>
+                    {i+1}
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
-          <Stat label="Total Reviews"  value={stats.total} highlight />
-          <Stat label="Avg Rating"     value={`${stats.avg}★`} />
-          <Stat label="Positive"       value={stats.pos} />
-          <Stat label="Negative"       value={stats.neg} />
-          <Stat label="Sentiment NPS"  value={npsStr} highlight />
-        </div>
-      </div>
-
-      {/* Positive + Risk */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
-        <div style={{ background: "var(--green-l)", border: "1px solid var(--green)", borderRadius: 16, padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--green-d)", fontWeight: 700, marginBottom: 12, letterSpacing: "0.04em" }}>
-            <span style={{ fontSize: 16 }}>✨</span> POSITIVE HIGHLIGHT
-          </div>
-          <p style={{ fontSize: 15, color: "var(--text)", lineHeight: 1.5 }}>{positiveHighlight}</p>
-        </div>
-        <div style={{ background: "var(--red-l)", border: "1px solid var(--red)", borderRadius: 16, padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--red)", fontWeight: 700, marginBottom: 12, letterSpacing: "0.04em" }}>
-            <span style={{ fontSize: 16 }}>⚠️</span> RISK ALERT
-          </div>
-          <p style={{ fontSize: 15, color: "var(--text)", lineHeight: 1.5 }}>{riskAlert}</p>
-        </div>
-      </div>
-
-      <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 16, color: "var(--text)" }}>Theme Breakdown</h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
-        {(themes || []).map(t => <ThemeCard key={t.name} theme={t} />)}
-      </div>
-
-      <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 16, color: "var(--text)" }}>Action Roadmap</h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
-        {(actions || []).map((a, i) => {
-          const m = THEME_META[a.theme] || { color: "var(--navy)" };
-          return (
-            <div key={i} style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, display: "flex", gap: 16, alignItems: "flex-start", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--bg)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, color: m.color, flexShrink: 0 }}>{i+1}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontWeight: 800, fontSize: 16, color: "var(--text)" }}>{a.title}</span>
-                  <Badge priority={a.priority} />
-                  <span style={{ fontSize: 12, color: "var(--sub)", background: "var(--bg)", padding: "4px 10px", borderRadius: 99, border: "1px solid var(--border)", fontWeight: 500 }}>⏱ {a.timeline}</span>
-                  <span style={{ fontSize: 12, color: "var(--sub)", background: "var(--bg)", padding: "4px 10px", borderRadius: 99, border: "1px solid var(--border)", fontWeight: 500 }}>👤 {a.owner}</span>
+                <div style={{ paddingBottom: i === actions.length - 1 ? 0 : 24 }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em", color: "var(--text-primary)", marginBottom: 8, marginTop: -2 }}>{a.title}</h3>
+                  <p style={{ fontSize: 15, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 16 }}>{a.description}</p>
+                  <div style={{ display: "flex", gap: 16, fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)" }}>
+                    <span style={{ background: "var(--bg)", padding: "4px 12px", borderRadius: 100, border: "1px solid var(--border)" }}>👤 {a.owner}</span>
+                    <span style={{ background: "var(--bg)", padding: "4px 12px", borderRadius: 100, border: "1px solid var(--border)" }}>⏳ {a.timeline}</span>
+                  </div>
                 </div>
-                <p style={{ fontSize: 14, color: "var(--text)", marginBottom: 8, lineHeight: 1.5 }}>{a.description}</p>
-                <div style={{ fontSize: 13, color: "var(--sub)", fontWeight: 500 }}>📏 {a.successMetric}</div>
               </div>
-            </div>
-          );
-        })}
+            ))}
+          </div>
+        </div>
+        
       </div>
 
-      <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
-        <h2 style={{ fontWeight: 800, fontSize: 18, marginBottom: 8, color: "var(--text)" }}>Share Insights</h2>
-        <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 20, lineHeight: 1.5 }}>Send this pulse to the preset team mailing list. Subject: <span style={{ color: "var(--navy)", fontWeight: 600 }}>{email?.subject}</span></p>
+      {/* New Top 3 Quotes Section */}
+      {result.topQuotes && result.topQuotes.length > 0 && (
+        <div style={{ marginBottom: 80 }}>
+          <h2 style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.02em", marginBottom: 32, display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--blue)", color: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>3</div>
+            Top User Quotes
+          </h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+            {result.topQuotes.map((q, i) => (
+              <div key={i} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 24, padding: 32, display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ fontSize: 40, color: "var(--border-focus)", lineHeight: 0.5, fontFamily: "serif" }}>"</div>
+                <p style={{ fontSize: 15, color: "var(--text-primary)", lineHeight: 1.6, flex: 1, fontStyle: "italic" }}>
+                  {q.text.length > 150 ? q.text.slice(0, 150) + "..." : q.text}
+                </p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border)", paddingTop: 16 }}>
+                  <div style={{ display: "flex", gap: 4, color: q.rating >= 4 ? "var(--green)" : q.rating <= 2 ? "var(--red)" : "var(--amber)", fontSize: 14 }}>
+                    {"★".repeat(q.rating)}{"☆".repeat(5-q.rating)}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 600 }}>{q.platform}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-        <button onClick={handleSendEmail} disabled={emailStatus === "sending"} style={{
-          padding: "12px 24px", borderRadius: 10, border: "none", cursor: emailStatus === "sending" ? "not-allowed" : "pointer",
-          background: emailStatus === "sent" ? "var(--green-l)" : "var(--navy)",
-          color: emailStatus === "sent" ? "var(--green-d)" : "var(--white)",
-          fontWeight: 700, fontSize: 14, fontFamily: "inherit", transition: "all .2s"
+      {/* Share Block */}
+      <div style={{ background: "var(--text-primary)", color: "var(--bg)", borderRadius: 24, padding: 48, display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "var(--shadow-lg)" }}>
+        <div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.01em", marginBottom: 8 }}>Distribute Insights</h2>
+          <p style={{ fontSize: 16, color: "var(--text-tertiary)", maxWidth: 400 }}>Send this compiled dashboard via email to your configured product team aliases.</p>
+        </div>
+        <button onClick={handleSendEmail} disabled={emailStatus === "sending" || emailStatus === "sent"} style={{
+          padding: "20px 40px", borderRadius: 16, border: "none",
+          background: emailStatus === "sent" ? "var(--green)" : "var(--bg)",
+          color: emailStatus === "sent" ? "var(--bg)" : "var(--text-primary)",
+          fontWeight: 800, fontSize: 16,
+          boxShadow: emailStatus === "sent" ? "none" : "0 4px 14px rgba(255,255,255,0.15)",
         }}>
-          {emailStatus === "sending" ? "Sending…" : emailStatus === "sent" ? "✓ Sent to Team!" : "Send Email to Team"}
+          {emailStatus === "sending" ? "Dispatching Email..." : emailStatus === "sent" ? "✓ Successfully Sent" : "Email Digest"}
         </button>
-
-        {emailStatus === "error" && <p style={{ color: "var(--red)", fontSize: 14, marginTop: 12, fontWeight: 500 }}>⚠ {emailError}</p>}
       </div>
+
     </div>
   );
 }

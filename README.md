@@ -20,9 +20,7 @@ An automated pipeline that scrapes live Groww app reviews from Google Play Store
 | Serverless functions | Netlify Functions (Node.js) |
 | AI analysis | Groq AI API |
 | Play Store scraping | `google-play-scraper` |
-| App Store scraping | iTunes RSS public API |
-| Email delivery | Nodemailer (Gmail) |
-| Hosting | Netlify |
+| Email delivery | SMTP (Gmail) |
 
 ---
 

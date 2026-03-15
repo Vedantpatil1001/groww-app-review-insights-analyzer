@@ -44,8 +44,14 @@ function aggregate(reviews) {
       topIssues: [],
     };
   });
+  const topQuotes = reviews
+    .filter(r => r.text && r.text.length > 20)
+    .sort((a, b) => b.text.length - a.text.length)
+    .slice(0, 3)
+    .map(r => ({ text: r.text, rating: r.rating, date: r.date, platform: r.platform }));
+  
   themes.sort((a, b) => b.negativeCount - a.negativeCount);
-  return { themes, stats: { total, avg, pos, neg, nps } };
+  return { themes, stats: { total, avg, pos, neg, nps }, topQuotes };
 }
 
 async function callGroq(prompt) {
@@ -58,6 +64,7 @@ async function callGroq(prompt) {
     messages: [{ role: "user", content: prompt }],
     temperature: 0.1,
     max_tokens: 1024,
+    response_format: { type: "json_object" },
   });
 
   const text         = completion.choices?.[0]?.message?.content ?? "";
@@ -86,7 +93,7 @@ exports.handler = async (event) => {
   if (!Array.isArray(reviews) || reviews.length === 0)
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: "No reviews provided" }) };
 
-  const { themes, stats } = aggregate(reviews);
+  const { themes, stats, topQuotes } = aggregate(reviews);
   console.log(`[analyze] ${reviews.length} reviews aggregated`);
 
   // Build a short numbered-stats prompt — NO user text, NO JSON template inside
@@ -102,39 +109,41 @@ ${rows}
 
 Overall: ${stats.total} total reviews, average ${stats.avg} stars, ${stats.pos} positive (4-5★), ${stats.neg} negative (1-2★), NPS proxy ${npsStr}.
 
-Using your knowledge of Indian fintech apps, write a JSON object. Rules:
+Using your knowledge of Indian fintech apps, output ONLY a valid, strict JSON object. Rules:
 - Return ONLY the JSON object, nothing before or after it.
+- ALL keys and string values MUST be enclosed in double quotes.
 - Do NOT include any markdown, backticks, or code fences.
 - Every string value must be under 15 words.
 - Do NOT include quotes-within-strings that would break JSON.
 
-The JSON must have exactly these keys:
-headline: one sentence summarising overall user sentiment this period
-sentiment: exactly one of: positive, mixed, negative
-pain_execution: main pain point for Execution and Performance theme
-pain_kyc: main pain point for KYC and Identity theme
-pain_charges: main pain point for Charges and Transparency theme
-pain_ui: main pain point for UI and Features theme
-positive_highlight: one thing users genuinely appreciate
-risk_alert: biggest product risk right now
-action1_title: 3-4 word title for top priority action
-action1_owner: team responsible, one of: Eng, Product, Design, Support
-action1_timeline: one of: This week, 2 weeks, 1 month
-action1_description: concrete action in under 15 words
-action1_metric: how to measure success in under 10 words
-action2_title: 3-4 word title for second action
-action2_owner: team responsible
-action2_timeline: one of: This week, 2 weeks, 1 month
-action2_description: concrete action in under 15 words
-action2_metric: how to measure success in under 10 words
-action3_title: 3-4 word title for third action
-action3_owner: team responsible
-action3_timeline: one of: This week, 2 weeks, 1 month
-action3_description: concrete action in under 15 words
-action3_metric: how to measure success in under 10 words
-email_subject: email subject line for this pulse report
-email_body: plain-text email body starting with Hi Team and ending with Pulse Bot pipe Automated Weekly Digest, maximum 120 words`;
-
+Use exactly this JSON schema format:
+{
+  "headline": "one sentence summarising overall user sentiment",
+  "sentiment": "positive, mixed, or negative",
+  "pain_execution": "main pain point for Execution and Performance",
+  "pain_kyc": "main pain point for KYC and Identity",
+  "pain_charges": "main pain point for Charges and Transparency",
+  "pain_ui": "main pain point for UI and Features",
+  "positive_highlight": "one thing users genuinely appreciate",
+  "risk_alert": "biggest product risk right now",
+  "action1_title": "3-4 word title for top priority action",
+  "action1_owner": "Eng, Product, Design, or Support",
+  "action1_timeline": "This week, 2 weeks, or 1 month",
+  "action1_description": "concrete action in under 15 words",
+  "action1_metric": "how to measure success in under 10 words",
+  "action2_title": "3-4 word title for second action",
+  "action2_owner": "team responsible",
+  "action2_timeline": "This week, 2 weeks, or 1 month",
+  "action2_description": "concrete action in under 15 words",
+  "action2_metric": "how to measure success in under 10 words",
+  "action3_title": "3-4 word title for third action",
+  "action3_owner": "team responsible",
+  "action3_timeline": "This week, 2 weeks, or 1 month",
+  "action3_description": "concrete action in under 15 words",
+  "action3_metric": "how to measure success in under 10 words",
+  "email_subject": "email subject",
+  "email_body": "plain-text email body starting with Hi Team and ending with Pulse Bot, max 120 words"
+}`;
   // Fallback values used when Gemini fails or JSON can't be parsed
   const FB = {
     headline:          "Mixed user sentiment across all themes this period",
@@ -186,6 +195,7 @@ email_body: plain-text email body starting with Hi Team and ending with Pulse Bo
       riskAlert:         g.risk_alert,
       actions,
       stats,
+      topQuotes,
       email:             { subject: g.email_subject, plain: g.email_body },
     }),
   };
