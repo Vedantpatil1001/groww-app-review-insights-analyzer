@@ -1,78 +1,87 @@
 import { useState } from "react";
 import { sendEmail } from "../lib/api.js";
-import { THEME_META, PRIORITY_STYLE } from "../lib/theme.js";
 
-const C = { surface:"#0F1623", card:"#131C2B", border:"#1C2942", teal:"#00D09C", muted:"#7A8BA8", dim:"#3D5070", red:"#F87171" };
+const THEME_META = {
+  "Execution & Performance": { color: "var(--red)", icon: "⚡" },
+  "KYC & Identity":          { color: "var(--amber)", icon: "🪪" },
+  "Charges & Transparency":  { color: "var(--green)", icon: "📊" },
+  "UI & Features":           { color: "var(--navy)", icon: "🎨" },
+};
+
+const PRIORITY_STYLE = {
+  CRITICAL: { badge: "var(--red)", bg: "var(--red-l)", border: "#FEB2B2" },
+  HIGH:     { badge: "var(--amber)", bg: "var(--amber-l)", border: "#FDE68A" },
+  FOCUS:    { badge: "var(--green-d)", bg: "var(--green-l)", border: "#A7F3D0" },
+  WATCH:    { badge: "var(--navy)", bg: "var(--navy-l)", border: "#BFDBFE" },
+};
+
 const fmt = iso => iso ? new Date(iso).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}) : "";
 
 function Badge({ priority }) {
   const s = PRIORITY_STYLE[priority] || PRIORITY_STYLE.WATCH;
-  return <span style={{ fontSize:10, fontWeight:800, letterSpacing:"0.06em", padding:"2px 8px", borderRadius:99, background:s.bg, color:s.badge, border:`1px solid ${s.border}` }}>{priority}</span>;
+  return <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", padding: "3px 10px", borderRadius: 99, background: s.bg, color: s.badge, border: `1px solid ${s.border}` }}>{priority}</span>;
 }
 
-function Stat({ label, value, teal }) {
+function Stat({ label, value, highlight }) {
   return (
-    <div style={{ flex:1, minWidth:90, background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 12px", textAlign:"center" }}>
-      <div style={{ fontSize:"clamp(18px,3vw,26px)", fontWeight:800, color: teal ? C.teal : "#EDF2F7", fontFamily:"Syne,sans-serif" }}>{value}</div>
-      <div style={{ fontSize:11, color:C.muted, marginTop:3 }}>{label}</div>
+    <div style={{ flex: 1, minWidth: 90, background: "var(--white)", border: highlight ? "1px solid var(--green)" : "1px solid var(--border)", borderRadius: 12, padding: "16px 12px", textAlign: "center", boxShadow: highlight ? "0 4px 12px rgba(0,200,83,0.1)" : "none" }}>
+      <div style={{ fontSize: "clamp(20px, 4vw, 28px)", fontWeight: 800, color: highlight ? "var(--green)" : "var(--text)" }}>{value}</div>
+      <div style={{ fontSize: 12, color: "var(--sub)", marginTop: 4, fontWeight: 500 }}>{label}</div>
     </div>
   );
 }
 
 function ThemeCard({ theme }) {
   const [open, setOpen] = useState(false);
-  const m = THEME_META[theme.name] || { color:"#60A5FA", icon:"●" };
-  const ps = PRIORITY_STYLE[theme.priority] || PRIORITY_STYLE.WATCH;
+  const m = THEME_META[theme.name] || { color: "var(--navy)", icon: "●" };
   const pct = n => Math.max(0, Math.min(100, n || 0));
 
   return (
-    <div onClick={() => setOpen(o => !o)} style={{ cursor:"pointer", background:C.card, border:`1px solid ${open ? m.color+"60" : C.border}`, borderRadius:14, padding:20, transition:"border-color .2s" }}>
-      <div style={{ display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
-        <div style={{ width:38, height:38, borderRadius:10, background:`${m.color}15`, border:`1px solid ${m.color}30`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>{m.icon}</div>
-        <div style={{ flex:1, minWidth:120 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
-            <span style={{ fontWeight:700, fontSize:15 }}>{theme.name}</span>
+    <div onClick={() => setOpen(o => !o)} style={{ cursor: "pointer", background: "var(--white)", border: open ? `1px solid ${m.color}` : "1px solid var(--border)", borderRadius: 16, padding: 20, transition: "all .2s", boxShadow: open ? "0 4px 12px rgba(0,0,0,0.05)" : "none" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--bg)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{m.icon}</div>
+        <div style={{ flex: 1, minWidth: 140 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <span style={{ fontWeight: 800, fontSize: 16, color: "var(--text)" }}>{theme.name}</span>
             <Badge priority={theme.priority} />
           </div>
-          <div style={{ fontSize:13, color:C.muted }}>{theme.corePain}</div>
+          <div style={{ fontSize: 13, color: "var(--sub)" }}>{theme.corePain}</div>
         </div>
-        <div style={{ display:"flex", gap:10, alignItems:"center", flexShrink:0 }}>
-          <div style={{ textAlign:"center" }}>
-            <div style={{ fontWeight:800, fontSize:18, color:m.color }}>{theme.reviewCount}</div>
-            <div style={{ fontSize:10, color:C.dim }}>reviews</div>
+        <div style={{ display: "flex", gap: 16, alignItems: "center", flexShrink: 0 }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 800, fontSize: 18, color: m.color }}>{theme.reviewCount}</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>reviews</div>
           </div>
-          <div style={{ textAlign:"center" }}>
-            <div style={{ fontWeight:800, fontSize:18 }}>{theme.avgRating}★</div>
-            <div style={{ fontSize:10, color:C.dim }}>avg</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 800, fontSize: 18, color: "var(--text)" }}>{theme.avgRating}★</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>avg</div>
           </div>
-          <div style={{ color:C.muted, fontSize:16, marginLeft:4 }}>{open ? "▲" : "▼"}</div>
+          <div style={{ color: "var(--muted)", fontSize: 14, marginLeft: 8, background: "var(--bg)", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>{open ? "▲" : "▼"}</div>
         </div>
       </div>
 
-      {/* Sentiment bar */}
-      <div style={{ marginTop:14, height:6, borderRadius:3, overflow:"hidden", display:"flex", gap:1 }}>
-        <div style={{ flex:pct(theme.sentiment_split?.positive), background:"#34D399", transition:"flex .4s" }} />
-        <div style={{ flex:pct(theme.sentiment_split?.neutral),  background:"#4B5563", transition:"flex .4s" }} />
-        <div style={{ flex:pct(theme.sentiment_split?.negative), background:C.red,    transition:"flex .4s" }} />
+      <div style={{ marginTop: 18, height: 6, borderRadius: 3, overflow: "hidden", display: "flex", gap: 2, background: "var(--bg)" }}>
+        <div style={{ flex: pct(theme.sentiment_split?.positive), background: "var(--green)", transition: "flex .4s" }} />
+        <div style={{ flex: pct(theme.sentiment_split?.neutral),  background: "var(--muted)", transition: "flex .4s" }} />
+        <div style={{ flex: pct(theme.sentiment_split?.negative), background: "var(--red)",    transition: "flex .4s" }} />
       </div>
-      <div style={{ display:"flex", gap:16, marginTop:6, fontSize:11, color:C.dim }}>
-        <span style={{ color:"#34D399" }}>▮ {theme.sentiment_split?.positive ?? 0}% positive</span>
-        <span>▮ {theme.sentiment_split?.neutral ?? 0}% neutral</span>
-        <span style={{ color:C.red }}>▮ {theme.sentiment_split?.negative ?? 0}% negative</span>
+      <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>
+        <span style={{ color: "var(--green-d)" }}>● {theme.sentiment_split?.positive ?? 0}% pos</span>
+        <span>● {theme.sentiment_split?.neutral ?? 0}% neu</span>
+        <span style={{ color: "var(--red)" }}>● {theme.sentiment_split?.negative ?? 0}% neg</span>
       </div>
 
-      {/* Expanded detail */}
       {open && (
-        <div style={{ marginTop:16, paddingTop:16, borderTop:`1px solid ${C.border}` }}>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-            <div style={{ padding:14, background:`${m.color}08`, border:`1px solid ${m.color}20`, borderRadius:10 }}>
-              <div style={{ fontSize:11, color:m.color, fontWeight:700, marginBottom:6 }}>NEGATIVE COUNT</div>
-              <div style={{ fontSize:24, fontWeight:800, color:m.color }}>{theme.negativeCount}</div>
-              <div style={{ fontSize:11, color:C.muted }}>out of {theme.reviewCount} reviews</div>
+        <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border)", animation: "fadeUp 0.3s ease" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ padding: 16, background: "var(--red-l)", border: "1px solid #FEB2B2", borderRadius: 12 }}>
+              <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 700, marginBottom: 8, letterSpacing: "0.05em" }}>NEGATIVE COUNT</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: "var(--red)" }}>{theme.negativeCount}</div>
+              <div style={{ fontSize: 12, color: "var(--sub)" }}>out of {theme.reviewCount} reviews</div>
             </div>
-            <div style={{ padding:14, background:"#0F1623", border:`1px solid ${C.border}`, borderRadius:10 }}>
-              <div style={{ fontSize:11, color:C.muted, fontWeight:700, marginBottom:6 }}>CORE PAIN</div>
-              <div style={{ fontSize:14, color:"#CBD5E1", lineHeight:1.5 }}>{theme.corePain}</div>
+            <div style={{ padding: 16, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12 }}>
+              <div style={{ fontSize: 12, color: "var(--sub)", fontWeight: 700, marginBottom: 8, letterSpacing: "0.05em" }}>CORE PAIN</div>
+              <div style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.5 }}>{theme.corePain}</div>
             </div>
           </div>
         </div>
@@ -82,18 +91,16 @@ function ThemeCard({ theme }) {
 }
 
 export default function ResultsScreen({ result, meta }) {
-  const [emailStatus, setEmailStatus] = useState("idle"); // idle | sending | sent | error
+  const [emailStatus, setEmailStatus] = useState("idle");
   const [emailError,  setEmailError]  = useState("");
-  const [recipients,  setRecipients]  = useState(meta?.recipients || "");
 
   const { overview, themes, positiveHighlight, riskAlert, actions, stats, email } = result;
   const npsStr = stats.nps >= 0 ? `+${stats.nps}` : String(stats.nps);
 
   async function handleSendEmail() {
-    if (!recipients.trim()) return;
     setEmailStatus("sending"); setEmailError("");
     try {
-      await sendEmail({ to: recipients, subject: email?.subject, plain: email?.plain, themes, actions, stats, fromDate: meta?.fromDate, toDate: meta?.toDate, positiveHighlight, riskAlert, headline: overview?.headline });
+      await sendEmail({ subject: email?.subject, plain: email?.plain, themes, actions, stats, fromDate: meta?.fromDate, toDate: meta?.toDate, positiveHighlight, riskAlert, headline: overview?.headline });
       setEmailStatus("sent");
     } catch (e) {
       setEmailError(e.message);
@@ -104,106 +111,95 @@ export default function ResultsScreen({ result, meta }) {
   return (
     <div className="fade-up">
       {/* Masthead */}
-      <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:18, padding:"24px 28px", marginBottom:20 }}>
-        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+      <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 16, padding: "28px 32px", marginBottom: 24, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
           <div>
-            <div style={{ fontSize:11, color:C.teal, fontWeight:700, letterSpacing:"0.08em", marginBottom:8 }}>
-              GROWW REVIEW PULSE · {fmt(meta?.fromDate)} – {fmt(meta?.toDate)} · {meta?.windowDays}-DAY WINDOW
+            <div style={{ fontSize: 12, color: "var(--green-d)", fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>
+              GROWW PULSE · {fmt(meta?.fromDate)} – {fmt(meta?.toDate)}
             </div>
-            <h1 style={{ fontFamily:"Syne,sans-serif", fontWeight:900, fontSize:"clamp(18px,3vw,26px)", lineHeight:1.25, maxWidth:600 }}>
+            <h1 style={{ fontWeight: 800, fontSize: "clamp(20px, 3.5vw, 28px)", lineHeight: 1.25, maxWidth: 640, color: "var(--text)", letterSpacing: "-0.01em" }}>
               {overview?.headline}
             </h1>
           </div>
           {meta?.sources && (
-            <div style={{ display:"flex", gap:10, flexShrink:0 }}>
+            <div style={{ display: "flex", gap: 12, flexShrink: 0 }}>
               {[["🤖",meta.sources.playStore,"Play Store"],["🍎",meta.sources.appStore,"App Store"]].map(([icon,n,lbl]) => (
-                <div key={lbl} style={{ textAlign:"center", background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 14px" }}>
-                  <div style={{ fontSize:16 }}>{icon}</div>
-                  <div style={{ fontWeight:800, fontSize:18, color:C.teal }}>{n}</div>
-                  <div style={{ fontSize:10, color:C.muted }}>{lbl}</div>
+                <div key={lbl} style={{ textAlign: "center", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px" }}>
+                  <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
+                  <div style={{ fontWeight: 800, fontSize: 18, color: "var(--text)" }}>{n}</div>
+                  <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>{lbl}</div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Stats row */}
-        <div style={{ display:"flex", gap:10, marginTop:20, flexWrap:"wrap" }}>
-          <Stat label="Total Reviews"  value={stats.total} teal />
+        <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
+          <Stat label="Total Reviews"  value={stats.total} highlight />
           <Stat label="Avg Rating"     value={`${stats.avg}★`} />
           <Stat label="Positive"       value={stats.pos} />
           <Stat label="Negative"       value={stats.neg} />
-          <Stat label="NPS Proxy"      value={npsStr} teal />
+          <Stat label="Sentiment NPS"  value={npsStr} highlight />
         </div>
       </div>
 
       {/* Positive + Risk */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:20 }}>
-        <div style={{ background:C.card, border:"1px solid #064E3B", borderRadius:14, padding:18 }}>
-          <div style={{ fontSize:11, color:"#34D399", fontWeight:700, marginBottom:8 }}>✓ POSITIVE HIGHLIGHT</div>
-          <p style={{ fontSize:14, color:"#A7F3D0" }}>{positiveHighlight}</p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
+        <div style={{ background: "var(--green-l)", border: "1px solid var(--green)", borderRadius: 16, padding: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--green-d)", fontWeight: 700, marginBottom: 12, letterSpacing: "0.04em" }}>
+            <span style={{ fontSize: 16 }}>✨</span> POSITIVE HIGHLIGHT
+          </div>
+          <p style={{ fontSize: 15, color: "var(--text)", lineHeight: 1.5 }}>{positiveHighlight}</p>
         </div>
-        <div style={{ background:C.card, border:"1px solid #7F1D1D", borderRadius:14, padding:18 }}>
-          <div style={{ fontSize:11, color:C.red, fontWeight:700, marginBottom:8 }}>⚠ RISK ALERT</div>
-          <p style={{ fontSize:14, color:"#FECACA" }}>{riskAlert}</p>
+        <div style={{ background: "var(--red-l)", border: "1px solid var(--red)", borderRadius: 16, padding: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--red)", fontWeight: 700, marginBottom: 12, letterSpacing: "0.04em" }}>
+            <span style={{ fontSize: 16 }}>⚠️</span> RISK ALERT
+          </div>
+          <p style={{ fontSize: 15, color: "var(--text)", lineHeight: 1.5 }}>{riskAlert}</p>
         </div>
       </div>
 
-      {/* Themes */}
-      <h2 style={{ fontFamily:"Syne,sans-serif", fontWeight:800, fontSize:18, marginBottom:14 }}>Theme Breakdown</h2>
-      <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:24 }}>
+      <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 16, color: "var(--text)" }}>Theme Breakdown</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
         {(themes || []).map(t => <ThemeCard key={t.name} theme={t} />)}
       </div>
 
-      {/* Actions */}
-      <h2 style={{ fontFamily:"Syne,sans-serif", fontWeight:800, fontSize:18, marginBottom:14 }}>Action Roadmap</h2>
-      <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:28 }}>
+      <h2 style={{ fontWeight: 800, fontSize: 20, marginBottom: 16, color: "var(--text)" }}>Action Roadmap</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
         {(actions || []).map((a, i) => {
-          const m = THEME_META[a.theme] || { color:"#60A5FA" };
-          const ps = PRIORITY_STYLE[a.priority] || PRIORITY_STYLE.WATCH;
+          const m = THEME_META[a.theme] || { color: "var(--navy)" };
           return (
-            <div key={i} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:14, padding:18, display:"flex", gap:16, alignItems:"flex-start" }}>
-              <div style={{ width:32, height:32, borderRadius:"50%", background:`${m.color}15`, border:`1px solid ${m.color}30`, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:14, color:m.color, flexShrink:0 }}>{i+1}</div>
-              <div style={{ flex:1 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap" }}>
-                  <span style={{ fontWeight:700, fontSize:15 }}>{a.title}</span>
+            <div key={i} style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, display: "flex", gap: 16, alignItems: "flex-start", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--bg)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, color: m.color, flexShrink: 0 }}>{i+1}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 800, fontSize: 16, color: "var(--text)" }}>{a.title}</span>
                   <Badge priority={a.priority} />
-                  <span style={{ fontSize:11, color:C.muted, background:"#131C2B", padding:"2px 8px", borderRadius:99, border:`1px solid ${C.border}` }}>⏱ {a.timeline}</span>
-                  <span style={{ fontSize:11, color:C.muted, background:"#131C2B", padding:"2px 8px", borderRadius:99, border:`1px solid ${C.border}` }}>👤 {a.owner}</span>
+                  <span style={{ fontSize: 12, color: "var(--sub)", background: "var(--bg)", padding: "4px 10px", borderRadius: 99, border: "1px solid var(--border)", fontWeight: 500 }}>⏱ {a.timeline}</span>
+                  <span style={{ fontSize: 12, color: "var(--sub)", background: "var(--bg)", padding: "4px 10px", borderRadius: 99, border: "1px solid var(--border)", fontWeight: 500 }}>👤 {a.owner}</span>
                 </div>
-                <p style={{ fontSize:13, color:"#CBD5E1", marginBottom:6 }}>{a.description}</p>
-                <div style={{ fontSize:12, color:C.muted }}>📏 {a.successMetric}</div>
+                <p style={{ fontSize: 14, color: "var(--text)", marginBottom: 8, lineHeight: 1.5 }}>{a.description}</p>
+                <div style={{ fontSize: 13, color: "var(--sub)", fontWeight: 500 }}>📏 {a.successMetric}</div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Email section */}
-      <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:24 }}>
-        <h2 style={{ fontFamily:"Syne,sans-serif", fontWeight:800, fontSize:18, marginBottom:6 }}>Send Email Digest</h2>
-        <p style={{ fontSize:13, color:C.muted, marginBottom:18 }}>Send this pulse to your team. Subject: <em style={{ color:"#EDF2F7" }}>{email?.subject}</em></p>
+      <div style={{ background: "var(--white)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
+        <h2 style={{ fontWeight: 800, fontSize: 18, marginBottom: 8, color: "var(--text)" }}>Share Insights</h2>
+        <p style={{ fontSize: 14, color: "var(--sub)", marginBottom: 20, lineHeight: 1.5 }}>Send this pulse to the preset team mailing list. Subject: <span style={{ color: "var(--navy)", fontWeight: 600 }}>{email?.subject}</span></p>
 
-        <div style={{ display:"flex", gap:10 }}>
-          <input
-            type="text"
-            value={recipients}
-            onChange={e => setRecipients(e.target.value)}
-            placeholder="pm@company.com, ceo@company.com"
-            style={{ flex:1, padding:"10px 14px", borderRadius:10, border:`1px solid ${C.border}`, background:"#080D17", color:"#EDF2F7", fontSize:14, fontFamily:"inherit", outline:"none" }}
-          />
-          <button onClick={handleSendEmail} disabled={emailStatus==="sending" || !recipients.trim()} style={{
-            padding:"10px 22px", borderRadius:10, border:"none", cursor: emailStatus==="sending" || !recipients.trim() ? "not-allowed" : "pointer",
-            background: emailStatus==="sent" ? "#064E3B" : `linear-gradient(135deg,${C.teal},#00A87A)`,
-            color: emailStatus==="sent" ? "#34D399" : "#080D17",
-            fontWeight:700, fontSize:14, fontFamily:"inherit", whiteSpace:"nowrap", opacity: !recipients.trim() ? 0.5 : 1,
-          }}>
-            {emailStatus==="sending" ? "Sending…" : emailStatus==="sent" ? "✓ Sent!" : "Send Email"}
-          </button>
-        </div>
+        <button onClick={handleSendEmail} disabled={emailStatus === "sending"} style={{
+          padding: "12px 24px", borderRadius: 10, border: "none", cursor: emailStatus === "sending" ? "not-allowed" : "pointer",
+          background: emailStatus === "sent" ? "var(--green-l)" : "var(--navy)",
+          color: emailStatus === "sent" ? "var(--green-d)" : "var(--white)",
+          fontWeight: 700, fontSize: 14, fontFamily: "inherit", transition: "all .2s"
+        }}>
+          {emailStatus === "sending" ? "Sending…" : emailStatus === "sent" ? "✓ Sent to Team!" : "Send Email to Team"}
+        </button>
 
-        {emailStatus==="error" && <p style={{ color:C.red, fontSize:13, marginTop:10 }}>⚠ {emailError}</p>}
-        {emailStatus==="sent"  && <p style={{ color:"#34D399", fontSize:13, marginTop:10 }}>✓ Email sent successfully to {recipients}</p>}
+        {emailStatus === "error" && <p style={{ color: "var(--red)", fontSize: 14, marginTop: 12, fontWeight: 500 }}>⚠ {emailError}</p>}
       </div>
     </div>
   );

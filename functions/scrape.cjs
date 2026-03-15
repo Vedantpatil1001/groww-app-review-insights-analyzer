@@ -27,17 +27,19 @@ function theme(title, text) {
 async function playReviews(days) {
   const cutoff = Date.now() - days * 86400000;
   const out = [];
-  for (let page = 0; page < 5; page++) {
+  let token;
+  for (let page = 0; page < 15; page++) {
     try {
-      const batch = await gplay.reviews({ appId: PLAY_ID, lang: "en", country: COUNTRY, sort: gplay.sort.NEWEST, num: 40 });
+      const batch = await gplay.reviews({ appId: PLAY_ID, lang: "en", country: COUNTRY, sort: gplay.sort.NEWEST, num: 150, paginate: true, nextPaginationToken: token });
       const items = Array.isArray(batch) ? batch : (batch.data ?? []);
+      token = batch.nextPaginationToken;
       let old = false;
       for (const r of items) {
         const ts = r.date ? new Date(r.date).getTime() : Date.now();
         if (ts < cutoff) { old = true; continue; }
         out.push({ id: `ps_${r.id}`, date: isoDay(r.date ?? new Date()), platform: "Play Store", rating: clamp(r.score), title: (r.title || "Review").slice(0, 80), text: (r.text || r.content || "").slice(0, 300), theme: theme(r.title, r.text || r.content || "") });
       }
-      if (old || !batch.nextPaginationToken) break;
+      if (old || !token) break;
     } catch (e) { console.error("[scrape] play page", page, e.message); break; }
   }
   return out;
@@ -46,7 +48,7 @@ async function playReviews(days) {
 async function iosReviews(days) {
   const cutoff = Date.now() - days * 86400000;
   const out = [];
-  for (let page = 1; page <= 10; page++) {
+  for (let page = 1; page <= 20; page++) {
     try {
       const res = await fetch(`https://itunes.apple.com/${COUNTRY}/rss/customerreviews/page=${page}/id=${IOS_ID}/sortby=mostrecent/json`, { headers: { "User-Agent": "Mozilla/5.0" } });
       if (!res.ok) break;
@@ -72,7 +74,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: CORS, body: "" };
 
   let windowDays = 7;
-  try { windowDays = Math.min(35, Math.max(7, parseInt(JSON.parse(event.body || "{}").windowDays, 10) || 7)); } catch {}
+  try { windowDays = Math.min(180, Math.max(1, parseInt(JSON.parse(event.body || "{}").windowDays, 10) || 7)); } catch {}
 
   try {
     console.log("[scrape] fetching", windowDays, "days");

@@ -1,4 +1,4 @@
-const fetch = require("node-fetch");
+const nodemailer = require("nodemailer");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -7,77 +7,124 @@ const CORS = {
   "Content-Type": "application/json",
 };
 
-const PRIORITY_COLOR = { CRITICAL: "#F87171", HIGH: "#FBBF24", FOCUS: "#34D399", WATCH: "#60A5FA" };
+const PRIORITY_BADGE = {
+  CRITICAL: { bg: "#FFF5F5", color: "#C53030", border: "#FEB2B2" },
+  HIGH:     { bg: "#FFFBEB", color: "#B45309", border: "#FCD34D" },
+  FOCUS:    { bg: "#EBF8FF", color: "#2B6CB0", border: "#90CDF4" },
+  WATCH:    { bg: "#F7FAFC", color: "#718096", border: "#E2E8F0" },
+};
 
 function htmlEmail({ headline, fromDate, toDate, stats, themes, actions, positiveHighlight, riskAlert }) {
-  const fmt = iso => { try { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); } catch { return iso; } };
+  const fmt    = iso => { try { return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); } catch { return iso; } };
   const npsStr = stats.nps >= 0 ? `+${stats.nps}` : String(stats.nps);
+
+  const badge = (priority) => {
+    const s = PRIORITY_BADGE[priority] || PRIORITY_BADGE.WATCH;
+    return `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:0.06em;background:${s.bg};color:${s.color};border:1px solid ${s.border}">${priority}</span>`;
+  };
 
   const themeRows = (themes || []).map(t => `
     <tr>
-      <td style="padding:10px 12px;border-bottom:1px solid #1C2942;">
-        <span style="color:${PRIORITY_COLOR[t.priority]||"#60A5FA"};font-weight:700;">${t.name}</span>
-      </td>
-      <td style="padding:10px 12px;border-bottom:1px solid #1C2942;color:#94A3B8;">${t.reviewCount} reviews</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #1C2942;color:#94A3B8;">${t.avgRating}★</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #1C2942;color:#CBD5E1;font-size:13px;">${t.corePain || ""}</td>
+      <td style="padding:11px 14px;border-bottom:1px solid #EDF2F7;font-weight:600;font-size:13px;color:#1A1A2E;">${t.name} ${badge(t.priority)}</td>
+      <td style="padding:11px 14px;border-bottom:1px solid #EDF2F7;color:#718096;font-size:13px;">${t.reviewCount} reviews</td>
+      <td style="padding:11px 14px;border-bottom:1px solid #EDF2F7;color:#718096;font-size:13px;">${t.avgRating}★</td>
+      <td style="padding:11px 14px;border-bottom:1px solid #EDF2F7;color:#4A5568;font-size:13px;">${t.corePain || ""}</td>
     </tr>`).join("");
 
   const actionRows = (actions || []).map((a, i) => `
     <tr>
-      <td style="padding:10px 12px;border-bottom:1px solid #1C2942;color:#00D09C;font-weight:700;">${i + 1}. ${a.title}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #1C2942;color:#94A3B8;">${a.owner}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #1C2942;color:#94A3B8;">${a.timeline}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #1C2942;color:#CBD5E1;font-size:13px;">${a.description}</td>
+      <td style="padding:11px 14px;border-bottom:1px solid #EDF2F7;">
+        <span style="font-weight:700;font-size:13px;color:#1A1A2E;">${i + 1}. ${a.title}</span>
+        ${badge(a.priority)}
+      </td>
+      <td style="padding:11px 14px;border-bottom:1px solid #EDF2F7;color:#718096;font-size:12px;">${a.owner}</td>
+      <td style="padding:11px 14px;border-bottom:1px solid #EDF2F7;color:#718096;font-size:12px;">${a.timeline}</td>
+      <td style="padding:11px 14px;border-bottom:1px solid #EDF2F7;color:#4A5568;font-size:12px;">${a.description}</td>
     </tr>`).join("");
 
   return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"/></head>
-<body style="margin:0;padding:0;background:#080D17;font-family:'DM Sans',Arial,sans-serif;color:#EDF2F7;">
-  <div style="max-width:680px;margin:0 auto;padding:32px 20px;">
-    <div style="background:linear-gradient(135deg,#0F1623,#131C2B);border:1px solid #1C2942;border-radius:16px;overflow:hidden;">
-      <div style="padding:28px 32px;border-bottom:1px solid #1C2942;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-          <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#00D09C,#00A87A);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#080D17;">G</div>
-          <div>
-            <div style="font-size:11px;color:#00D09C;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Groww Review Pulse</div>
-            <div style="font-size:14px;color:#7A8BA8;">${fmt(fromDate)} – ${fmt(toDate)}</div>
-          </div>
-        </div>
-        <h1 style="margin:0;font-size:22px;font-weight:800;line-height:1.3;">${headline || "Weekly Review Summary"}</h1>
-      </div>
+<html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;background:#F7F9FC;font-family:'Helvetica Neue',Arial,sans-serif;color:#1A1A2E;">
+  <div style="max-width:660px;margin:0 auto;padding:28px 16px;">
 
-      <div style="padding:20px 32px;display:flex;gap:16px;border-bottom:1px solid #1C2942;">
-        ${[["Reviews", stats.total], ["Avg Rating", stats.avg + "★"], ["NPS Proxy", npsStr], ["Negative", stats.neg]].map(([l, v]) =>
-          `<div style="flex:1;background:#080D17;border:1px solid #1C2942;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#00D09C;">${v}</div><div style="font-size:11px;color:#7A8BA8;margin-top:4px;">${l}</div></div>`
-        ).join("")}
-      </div>
-
-      <div style="padding:24px 32px;border-bottom:1px solid #1C2942;">
-        <h2 style="margin:0 0 16px;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#7A8BA8;">Themes</h2>
-        <table style="width:100%;border-collapse:collapse;"><tbody>${themeRows}</tbody></table>
-      </div>
-
-      <div style="padding:24px 32px;border-bottom:1px solid #1C2942;">
-        <h2 style="margin:0 0 16px;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#7A8BA8;">Actions</h2>
-        <table style="width:100%;border-collapse:collapse;"><tbody>${actionRows}</tbody></table>
-      </div>
-
-      <div style="padding:20px 32px;background:#0B1020;display:flex;gap:16px;">
-        <div style="flex:1;padding:14px;background:#0F1623;border:1px solid #1C2942;border-radius:10px;">
-          <div style="font-size:11px;color:#34D399;font-weight:700;margin-bottom:6px;">✓ POSITIVE</div>
-          <div style="font-size:13px;color:#CBD5E1;">${positiveHighlight || ""}</div>
-        </div>
-        <div style="flex:1;padding:14px;background:#0F1623;border:1px solid #1C2942;border-radius:10px;">
-          <div style="font-size:11px;color:#F87171;font-weight:700;margin-bottom:6px;">⚠ RISK ALERT</div>
-          <div style="font-size:13px;color:#CBD5E1;">${riskAlert || ""}</div>
-        </div>
-      </div>
-
-      <div style="padding:16px 32px;text-align:center;color:#3D5070;font-size:12px;">
-        Pulse Bot · Automated Weekly Digest · Groww Review Analyzer
+    <!-- Header -->
+    <div style="background:#00C853;border-radius:14px 14px 0 0;padding:24px 28px;display:flex;align-items:center;gap:14px;">
+      <div style="width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;font-family:inherit;">G</div>
+      <div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;color:rgba(255,255,255,0.85);text-transform:uppercase;">Groww Review Pulse</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.75);margin-top:2px;">${fmt(fromDate)} – ${fmt(toDate)}</div>
       </div>
     </div>
+
+    <!-- Headline card -->
+    <div style="background:#ffffff;border:1px solid #E2E8F0;border-top:none;padding:22px 28px;border-radius:0 0 0 0;">
+      <h1 style="margin:0;font-size:19px;font-weight:800;line-height:1.35;color:#1A1A2E;letter-spacing:-0.02em;">${headline || "Weekly Review Summary"}</h1>
+    </div>
+
+    <!-- Stats row -->
+    <table style="width:100%;border-collapse:separate;border-spacing:6px;margin:6px 0;" cellpadding="0" cellspacing="6">
+      <tr>
+        ${[["Total Reviews", stats.total, "#00C853"], ["Avg Rating", stats.avg + "★", "#00417A"], ["NPS Proxy", npsStr, "#00417A"], ["Negative", stats.neg, "#E53E3E"]].map(([l, v, c]) =>
+          `<td style="background:#ffffff;border:1px solid #E2E8F0;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:21px;font-weight:800;color:${c};">${v}</div><div style="font-size:11px;color:#718096;margin-top:3px;">${l}</div></td>`
+        ).join("")}
+      </tr>
+    </table>
+
+    <!-- Positive + Risk -->
+    <table style="width:100%;border-collapse:separate;border-spacing:6px;margin:0 0 6px;" cellpadding="0" cellspacing="6">
+      <tr>
+        <td style="background:#F0FFF4;border:1px solid #9AE6B4;border-radius:10px;padding:16px;vertical-align:top;width:50%;">
+          <div style="font-size:11px;font-weight:700;color:#276749;letter-spacing:0.06em;margin-bottom:6px;">✓ POSITIVE HIGHLIGHT</div>
+          <div style="font-size:13px;color:#22543D;line-height:1.6;">${positiveHighlight || ""}</div>
+        </td>
+        <td style="background:#FFF5F5;border:1px solid #FEB2B2;border-radius:10px;padding:16px;vertical-align:top;width:50%;">
+          <div style="font-size:11px;font-weight:700;color:#C53030;letter-spacing:0.06em;margin-bottom:6px;">⚠ RISK ALERT</div>
+          <div style="font-size:13px;color:#742A2A;line-height:1.6;">${riskAlert || ""}</div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Themes -->
+    <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:10px;margin-bottom:6px;overflow:hidden;">
+      <div style="padding:14px 16px;border-bottom:1px solid #EDF2F7;background:#F7F9FC;">
+        <span style="font-size:12px;font-weight:700;color:#718096;letter-spacing:0.07em;text-transform:uppercase;">Theme Breakdown</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:#F7F9FC;">
+            <th style="padding:8px 14px;font-size:11px;font-weight:700;color:#718096;text-align:left;letter-spacing:0.05em;">THEME</th>
+            <th style="padding:8px 14px;font-size:11px;font-weight:700;color:#718096;text-align:left;letter-spacing:0.05em;">REVIEWS</th>
+            <th style="padding:8px 14px;font-size:11px;font-weight:700;color:#718096;text-align:left;letter-spacing:0.05em;">AVG</th>
+            <th style="padding:8px 14px;font-size:11px;font-weight:700;color:#718096;text-align:left;letter-spacing:0.05em;">CORE PAIN</th>
+          </tr>
+        </thead>
+        <tbody>${themeRows}</tbody>
+      </table>
+    </div>
+
+    <!-- Actions -->
+    <div style="background:#ffffff;border:1px solid #E2E8F0;border-radius:10px;margin-bottom:20px;overflow:hidden;">
+      <div style="padding:14px 16px;border-bottom:1px solid #EDF2F7;background:#F7F9FC;">
+        <span style="font-size:12px;font-weight:700;color:#718096;letter-spacing:0.07em;text-transform:uppercase;">Action Roadmap</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:#F7F9FC;">
+            <th style="padding:8px 14px;font-size:11px;font-weight:700;color:#718096;text-align:left;letter-spacing:0.05em;">ACTION</th>
+            <th style="padding:8px 14px;font-size:11px;font-weight:700;color:#718096;text-align:left;letter-spacing:0.05em;">OWNER</th>
+            <th style="padding:8px 14px;font-size:11px;font-weight:700;color:#718096;text-align:left;letter-spacing:0.05em;">BY</th>
+            <th style="padding:8px 14px;font-size:11px;font-weight:700;color:#718096;text-align:left;letter-spacing:0.05em;">DESCRIPTION</th>
+          </tr>
+        </thead>
+        <tbody>${actionRows}</tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center;color:#A0AEC0;font-size:11px;padding:6px 0 12px;">
+      Pulse Bot · Automated Digest · Groww Review Analyzer
+    </div>
+
   </div>
 </body></html>`;
 }
@@ -91,26 +138,38 @@ exports.handler = async (event) => {
 
   const { to, subject, plain, themes, actions, stats, fromDate, toDate, positiveHighlight, riskAlert, headline } = body;
 
-  if (!to)      return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: "to is required" }) };
+  const gmailUser = process.env.GMAIL_USER;
+  const finalTo = to || process.env.TEAM_EMAILS || gmailUser;
+
+  if (!finalTo) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: "to is required and no default configured" }) };
   if (!subject) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: "subject is required" }) };
 
-  const key    = process.env.RESEND_API_KEY;
-  const sender = process.env.SENDER_EMAIL || "onboarding@resend.dev";
-  if (!key) return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: "RESEND_API_KEY not set in .env" }) };
+  const gmailPass = process.env.GMAIL_APP_PASSWORD;
 
-  const recipients = to.split(",").map(s => s.trim()).filter(Boolean);
+  if (!gmailUser) return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: "GMAIL_USER not set in .env" }) };
+  if (!gmailPass) return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: "GMAIL_APP_PASSWORD not set in .env" }) };
+
+  const recipients = finalTo.split(",").map(s => s.trim()).filter(Boolean);
   const html = htmlEmail({ headline, fromDate, toDate, stats: stats || { total: 0, avg: 0, nps: 0, neg: 0 }, themes: themes || [], actions: actions || [], positiveHighlight, riskAlert });
 
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: gmailUser,
+      pass: gmailPass,
+    },
+  });
+
   try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ from: sender, to: recipients, subject, html, text: plain || subject }),
+    const info = await transporter.sendMail({
+      from: `"Groww Review Pulse" <${gmailUser}>`,
+      to: recipients.join(", "),
+      subject,
+      html,
+      text: plain || subject,
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || JSON.stringify(data));
-    console.log("[email] sent:", data.id);
-    return { statusCode: 200, headers: CORS, body: JSON.stringify({ success: true, id: data.id }) };
+    console.log("[email] sent:", info.messageId);
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ success: true, id: info.messageId }) };
   } catch (e) {
     console.error("[email] error:", e.message);
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: e.message }) };

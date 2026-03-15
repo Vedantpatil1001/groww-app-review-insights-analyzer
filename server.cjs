@@ -69,7 +69,7 @@ server.listen(PORT, () => {
   console.log("\n✅  Functions server → http://localhost:" + PORT);
   console.log("    Handlers: " + Object.keys(HANDLERS).join("  |  "));
   console.log("\n    Env:");
-  ["GEMINI_API_KEY", "RESEND_API_KEY", "SENDER_EMAIL"].forEach(k =>
+  ["GROQ_API_KEY", "GMAIL_USER", "GMAIL_APP_PASSWORD"].forEach(k =>
     console.log("      " + k + ": " + (process.env[k] ? "✓ set" : "✗ MISSING – add to .env"))
   );
   console.log("\n    Browse: http://localhost:5173\n");

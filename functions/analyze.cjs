@@ -1,4 +1,4 @@
-const fetch = require("node-fetch");
+const Groq = require("groq-sdk");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -48,31 +48,22 @@ function aggregate(reviews) {
   return { themes, stats: { total, avg, pos, neg, nps } };
 }
 
-async function gemini(prompt) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY not set in .env");
+async function callGroq(prompt) {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new Error("GROQ_API_KEY not set in .env");
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
-      }),
-    }
-  );
+  const groq = new Groq({ apiKey: key });
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.1,
+    max_tokens: 1024,
+  });
 
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`Gemini HTTP ${res.status}: ${t.slice(0, 200)}`);
-  }
-  const data   = await res.json();
-  const text   = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  const reason = data.candidates?.[0]?.finishReason;
-  console.log(`[analyze] gemini finishReason=${reason} len=${text.length}`);
-  if (!text) throw new Error(`Gemini empty response (finishReason=${reason})`);
+  const text         = completion.choices?.[0]?.message?.content ?? "";
+  const finishReason = completion.choices?.[0]?.finish_reason;
+  console.log(`[analyze] groq finish_reason=${finishReason} len=${text.length}`);
+  if (!text) throw new Error(`Groq empty response (finish_reason=${finishReason})`);
   return text;
 }
 
@@ -163,11 +154,11 @@ email_body: plain-text email body starting with Hi Team and ending with Pulse Bo
 
   let g = FB;
   try {
-    const raw = await gemini(prompt);
+    const raw = await callGroq(prompt);
     g = { ...FB, ...parseJSON(raw) };
     console.log("[analyze] JSON parsed OK");
   } catch (e) {
-    console.error("[analyze] Gemini/parse error, using fallback:", e.message);
+    console.error("[analyze] Groq/parse error, using fallback:", e.message);
   }
 
   const corePains = {
